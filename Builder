@@ -1,0 +1,108 @@
+using System;
+
+public interface IReportBuilder
+{
+    void SetHeader(string header);
+    void SetContent(string content);
+    void SetFooter(string footer);
+    Report GetReport();
+}
+
+public class Report
+{
+    public string Header { get; set; }
+    public string Content { get; set; }
+    public string Footer { get; set; }
+    public string Style { get; set; }
+
+    public void DisplayReport()
+    {
+        Console.WriteLine("Header: " + Header);
+        Console.WriteLine("Content: " + Content);
+        Console.WriteLine("Footer: " + Footer);
+        if (!string.IsNullOrEmpty(Style))
+        {
+            Console.WriteLine("Style: " + Style);
+        }
+    }
+
+    public void UpdateHeader(string newHeader) => Header = newHeader;
+    public void UpdateContent(string newContent) => Content = newContent;
+    public void UpdateFooter(string newFooter) => Footer = newFooter;
+}
+
+public class TextReportBuilder : IReportBuilder
+{
+    private Report _report = new Report();
+
+    public void SetHeader(string header) => _report.Header = header;
+    public void SetContent(string content) => _report.Content = content;
+    public void SetFooter(string footer) => _report.Footer = footer;
+    public Report GetReport() => _report;
+}
+
+public class HtmlReportBuilder : IReportBuilder
+{
+    private Report _report = new Report();
+
+    public void SetHeader(string header) => _report.Header = $"<h1>{header}</h1>";
+    public void SetContent(string content) => _report.Content = $"<p>{content}</p>";
+    public void SetFooter(string footer) => _report.Footer = $"<footer>{footer}</footer>";
+    public Report GetReport() => _report;
+}
+
+public class XmlReportBuilder : IReportBuilder
+{
+    private Report _report = new Report();
+
+    public void SetHeader(string header) => _report.Header = $"<header>{header}</header>";
+    public void SetContent(string content) => _report.Content = $"<content>{content}</content>";
+    public void SetFooter(string footer) => _report.Footer = $"<footer>{footer}</footer>";
+    public Report GetReport() => _report;
+}
+
+public class ReportDirector
+{
+    public void ConstructReport(IReportBuilder reportBuilder, string style = null)
+    {
+        reportBuilder.SetHeader("Report Header");
+        reportBuilder.SetContent("This is the report content.");
+        reportBuilder.SetFooter("Report Footer");
+
+        var report = reportBuilder.GetReport();
+        report.Style = style;
+    }
+}
+
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        ReportDirector director = new ReportDirector();
+        
+        IReportBuilder textBuilder = new TextReportBuilder();
+        director.ConstructReport(textBuilder, "Bold");
+        Report textReport = textBuilder.GetReport();
+        Console.WriteLine("Text Report:");
+        textReport.DisplayReport();
+        textReport.UpdateHeader("New Text Header");
+        textReport.UpdateContent("Updated text content.");
+        textReport.DisplayReport();
+
+        Console.WriteLine();
+
+        IReportBuilder htmlBuilder = new HtmlReportBuilder();
+        director.ConstructReport(htmlBuilder, "Italic");
+        Report htmlReport = htmlBuilder.GetReport();
+        Console.WriteLine("HTML Report:");
+        htmlReport.DisplayReport();
+
+        Console.WriteLine();
+
+        IReportBuilder xmlBuilder = new XmlReportBuilder();
+        director.ConstructReport(xmlBuilder, "Underline");
+        Report xmlReport = xmlBuilder.GetReport();
+        Console.WriteLine("XML Report:");
+        xmlReport.DisplayReport();
+    }
+}
