@@ -1,0 +1,131 @@
+using System;
+using System.Collections.Generic;
+
+public interface ICloneable<T>
+{
+    T Clone();
+}
+
+public class Product : ICloneable<Product>
+{
+    public string Name { get; set; }
+    public decimal Price { get; set; }
+
+    public Product(string name, decimal price)
+    {
+        Name = name;
+        Price = price;
+    }
+
+    public Product Clone()
+    {
+        return new Product(Name, Price);
+    }
+
+    public override string ToString()
+    {
+        return $"{Name} - {Price:C2}";
+    }
+}
+
+public class Discount : ICloneable<Discount>
+{
+    public string DiscountCode { get; set; }
+    public decimal DiscountAmount { get; set; }
+
+    public Discount(string discountCode, decimal discountAmount)
+    {
+        DiscountCode = discountCode;
+        DiscountAmount = discountAmount;
+    }
+
+    public Discount Clone()
+    {
+        return new Discount(DiscountCode, DiscountAmount);
+    }
+
+    public override string ToString()
+    {
+        return $"{DiscountCode} - {DiscountAmount:C2}";
+    }
+}
+
+public class Order : ICloneable<Order>
+{
+    public List<Product> Products { get; set; } = new List<Product>();
+    public decimal ShippingCost { get; set; }
+    public Discount AppliedDiscount { get; set; }
+    public string PaymentMethod { get; set; }
+
+    public Order Clone()
+    {
+        var clonedOrder = new Order
+        {
+            ShippingCost = this.ShippingCost,
+            AppliedDiscount = this.AppliedDiscount?.Clone(),
+            PaymentMethod = this.PaymentMethod
+        };
+
+        foreach (var product in Products)
+        {
+            clonedOrder.Products.Add(product.Clone());
+        }
+
+        return clonedOrder;
+    }
+
+    public void UpdateProductPrice(string productName, decimal newPrice)
+    {
+        var product = Products.Find(p => p.Name == productName);
+        if (product != null)
+        {
+            product.Price = newPrice;
+        }
+        else
+        {
+            throw new ArgumentException($"Product '{productName}' not found.");
+        }
+    }
+
+    public override string ToString()
+    {
+        string products = string.Join("\n", Products);
+        string discount = AppliedDiscount != null ? AppliedDiscount.ToString() : "No Discount";
+        return $"Products:\n{products}\nShipping: {ShippingCost:C2}\nDiscount: {discount}\nPayment Method: {PaymentMethod}";
+    }
+}
+
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        // Создание продуктов
+        var product1 = new Product("Laptop", 1200m);
+        var product2 = new Product("Mouse", 25m);
+        
+        // Создание скидки
+        var discount = new Discount("SUMMER2024", 100m);
+
+        // Создание заказа
+        var order1 = new Order
+        {
+            Products = new List<Product> { product1, product2 },
+            ShippingCost = 30m,
+            AppliedDiscount = discount,
+            PaymentMethod = "Credit Card"
+        };
+
+        Console.WriteLine("Original Order:");
+        Console.WriteLine(order1);
+
+        // Клонирование заказа и обновление цены продукта
+        var order2 = order1.Clone();
+        order2.UpdateProductPrice("Mouse", 20m);
+
+        Console.WriteLine("\nCloned Order (updated Mouse price):");
+        Console.WriteLine(order2);
+
+        Console.WriteLine("\nOriginal Order after cloning:");
+        Console.WriteLine(order1);
+    }
+}
