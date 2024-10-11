@@ -1,0 +1,125 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading;
+
+public class ConfigurationManager
+{
+    private static ConfigurationManager _instance;
+    private static readonly object _lock = new object();
+    private Dictionary<string, string> _settings;
+
+    private ConfigurationManager()
+    {
+        _settings = new Dictionary<string, string>();
+    }
+
+    // Потокобезопасный метод для получения единственного экземпляра
+    public static ConfigurationManager GetInstance()
+    {
+        if (_instance == null)
+        {
+            lock (_lock)
+            {
+                if (_instance == null)
+                {
+                    _instance = new ConfigurationManager();
+                }
+            }
+        }
+        return _instance;
+    }
+
+    // Метод для получения настройки по ключу
+    public string GetSetting(string key)
+    {
+        if (!_settings.ContainsKey(key))
+            throw new KeyNotFoundException($"Setting '{key}' not found.");
+        return _settings[key];
+    }
+
+    // Метод для добавления или обновления настройки
+    public void SetSetting(string key, string value)
+    {
+        if (_settings.ContainsKey(key))
+        {
+            _settings[key] = value;
+        }
+        else
+        {
+            _settings.Add(key, value);
+        }
+    }
+
+    // Сохранение настроек в файл
+    public void SaveSettings(string filePath)
+    {
+        using (StreamWriter writer = new StreamWriter(filePath))
+        {
+            foreach (var setting in _settings)
+            {
+                writer.WriteLine($"{setting.Key}={setting.Value}");
+            }
+        }
+    }
+
+    // Загрузка настроек из файла
+    public void LoadSettings(string filePath)
+    {
+        if (!File.Exists(filePath))
+        {
+            throw new FileNotFoundException("Settings file not found.");
+        }
+
+        using (StreamReader reader = new StreamReader(filePath))
+        {
+            string line;
+            while ((line = reader.ReadLine()) != null)
+            {
+                var parts = line.Split('=');
+                if (parts.Length == 2)
+                {
+                    SetSetting(parts[0], parts[1]);
+                }
+            }
+        }
+    }
+}
+
+// Тестирование многопоточности
+public class Program
+{
+    public static void Main()
+    {
+        // Тест Singleton с сохранением/загрузкой из файла
+        var configManager = ConfigurationManager.GetInstance();
+        configManager.SetSetting("AppName", "MyApp");
+        configManager.SetSetting("Version", "1.0");
+        
+        string filePath = "settings.txt";
+        configManager.SaveSettings(filePath);
+
+        Console.WriteLine("Settings saved.");
+
+        var newConfigManager = ConfigurationManager.GetInstance();
+        newConfigManager.LoadSettings(filePath);
+
+        Console.WriteLine($"Loaded AppName: {newConfigManager.GetSetting("AppName")}");
+        Console.WriteLine($"Loaded Version: {newConfigManager.GetSetting("Version")}");
+
+        TestMultithreading();
+    }
+
+    public static void TestMultithreading()
+    {
+        for (int i = 0; i < 10; i++)
+        {
+            Thread thread = new Thread(() =>
+            {
+                var config = ConfigurationManager.GetInstance();
+                Console.WriteLine($"Instance ID: {config.GetHashCode()}");
+            });
+            thread.Start();
+        }
+    }
+}
